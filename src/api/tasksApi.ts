@@ -1,4 +1,3 @@
-import axiosInstance from './axiosInstance';
 import { Task, CreateTaskDto, UpdateTaskDto } from '@/types/task';
 
 export const tasksApi = {

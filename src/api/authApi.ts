@@ -1,4 +1,3 @@
-import axiosInstance from './axiosInstance';
 import { User } from '@/types/user';
 
 export interface AuthResponse {

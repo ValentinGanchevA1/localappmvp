@@ -5,8 +5,14 @@ import { LocationPermission } from '@/types';
 export async function requestLocationPermission(): Promise<LocationPermission> {
   if (Platform.OS === 'ios') {
     // On iOS, permissions are typically handled by Info.plist and requested at runtime.
-    // This function can be expanded to use a library like react-native-permissions.
-    return 'granted'; // Placeholder
+    // For production, use react-native-permissions library:
+    // import { PERMISSIONS, RESULTS, request } from 'react-native-permissions';
+    // const result = await request(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE);
+    // return result === RESULTS.GRANTED ? 'granted' : 'denied';
+
+    // For now, returning placeholder - update when ready
+    console.warn('[permissions] iOS location permission not fully implemented');
+    return 'granted';
   }
 
   try {

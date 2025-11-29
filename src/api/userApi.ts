@@ -1,5 +1,4 @@
 // src/api/userApi.ts
-import axiosInstance from './axiosInstance';
 import { User, UserPreferences } from '@/types/user';
 
 // User profile operations

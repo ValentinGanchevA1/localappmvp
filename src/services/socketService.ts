@@ -1,10 +1,13 @@
 import { io, Socket } from 'socket.io-client';
+import { store } from '@/store';
 
 export class SocketService {
   private static instance: SocketService;
-  private static socket: Socket | null = null; // Make socket static
+  private socket: Socket | null = null;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
 
-  private constructor() {} // Prevent instantiation outside
+  private constructor() {}
 
   public static getInstance(): SocketService {
     if (!SocketService.instance) {
@@ -14,40 +17,76 @@ export class SocketService {
   }
 
   public initialize(url: string): void {
-    if (SocketService.socket) {
-      console.warn('Socket is already initialized.');
+    if (this.socket?.connected) {
+      console.warn('[SocketService] Already connected');
       return;
     }
-    SocketService.socket = io(url, {
+
+    this.socket = io(url, {
       autoConnect: true,
       transports: ['websocket'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: this.maxReconnectAttempts,
     });
 
-    SocketService.socket.on('connect', () => {
-      console.log('Socket connected:', SocketService.socket?.id);
+    this.setupListeners();
+  }
+
+  private setupListeners(): void {
+    if (!this.socket) return;
+
+    this.socket.on('connect', () => {
+      console.log('[SocketService] Connected:', this.socket?.id);
+      this.reconnectAttempts = 0;
     });
 
-    SocketService.socket.on('disconnect', () => {
-      console.log('Socket disconnected');
+    this.socket.on('disconnect', (reason) => {
+      console.log('[SocketService] Disconnected:', reason);
+    });
+
+    this.socket.on('error', (error) => {
+      console.error('[SocketService] Error:', error);
+    });
+
+    this.socket.on('reconnect_attempt', () => {
+      this.reconnectAttempts++;
+      console.log(
+        `[SocketService] Reconnect attempt ${this.reconnectAttempts}`
+      );
     });
   }
 
-  public static emit(event: string, data?: any): void {
-    if (!SocketService.socket) {
-      console.error('Socket not initialized.');
+  public emit(event: string, data?: any): void {
+    if (!this.socket?.connected) {
+      console.warn('[SocketService] Socket not connected');
       return;
     }
-    SocketService.socket.emit(event, data);
+    this.socket.emit(event, data);
+  }
+
+  public on(event: string, callback: (...args: any[]) => void): void {
+    if (!this.socket) {
+      console.warn('[SocketService] Socket not initialized');
+      return;
+    }
+    this.socket.on(event, callback);
+  }
+
+  public off(event: string): void {
+    if (!this.socket) return;
+    this.socket.off(event);
   }
 
   public disconnect(): void {
-    if (SocketService.socket) {
-      SocketService.socket.disconnect();
-      SocketService.socket = null;
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
     }
   }
 
-  public getSocket(): Socket | null {
-    return SocketService.socket;
+  public isConnected(): boolean {
+    return this.socket?.connected || false;
   }
 }

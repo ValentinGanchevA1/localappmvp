@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axiosInstance from '@/api/axiosInstance';
 import { ValidationUtils } from '@/utils/validation';
 import { User } from '@/types/user';
+import { SocketService } from '@/services/socketService';
 
 interface AuthState {
   token: string | null;
@@ -101,6 +101,9 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     logout: (state) => {
+      // Disconnect socket before clearing auth
+      SocketService.getInstance().disconnect();
+
       state.token = null;
       state.isAuthenticated = false;
       state.user = null;
