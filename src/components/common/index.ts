@@ -1,7 +1,8 @@
-export * from './Avatar';
-export * from './Button';
-export * from './Card';
-export * from './CodeInput';
-export * from './ImagePicker';
-export * from './Input';
-export * from './LazyImage';
+export { Avatar } from './Avatar';
+export { Button } from './Button';
+export { Card } from './Card';
+export { CodeInput } from './CodeInput';
+export { ImagePicker } from './ImagePicker';
+export { Input } from './Input';
+export { LazyImage } from './LazyImage';
+export { ValidatedInput } from './ValidatedInput';

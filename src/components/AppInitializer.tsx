@@ -4,6 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from '@/hooks/useLocation';
 import { useAppDispatch } from '@/store/hooks';
 import { fetchUserProfile } from '@/store/slices/userSlice';
+import { SocketService } from '@/services/socketService';
+import { AppEnvironment } from '@/config/environment';
 
 interface AppInitializerProps {
 	children: React.ReactNode;
@@ -23,6 +25,9 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
 			if (!isAuthenticated || !user) return;
 
 			try {
+				// Initialize socket
+				SocketService.getInstance().initialize(AppEnvironment.SOCKET_URL);
+
 				// Fetch user profile (non-blocking - don't await)
 				dispatch(fetchUserProfile());
 
@@ -45,7 +50,7 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
 				// Optional: stop tracking on unmount
 			}
 		};
-	}, [isAuthenticated, user?.id, dispatch]);
+	}, [isAuthenticated, user, dispatch, startTracking]);
 
 	// Handle app state changes
 	useEffect(() => {

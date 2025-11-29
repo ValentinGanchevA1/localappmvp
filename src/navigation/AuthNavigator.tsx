@@ -1,10 +1,12 @@
 // src/navigation/AuthNavigator.tsx
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { PhoneLoginScreen } from '@/screens/auth/PhoneLoginScreen';
-import { VerificationScreen } from '@/screens/auth/VerificationScreen';
-import { ProfileSetupScreen } from '@/screens/auth/ProfileSetupScreen';
-import { SignupScreen } from '@/screens/auth/SignupScreen';
+import {
+  PhoneLoginScreen,
+  VerificationScreen,
+  ProfileSetupScreen,
+  SignupScreen,
+} from '@/screens/auth';
 import { COLORS, TYPOGRAPHY } from '@/config/theme';
 
 export type AuthStackParamList = {
