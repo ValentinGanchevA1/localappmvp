@@ -59,12 +59,27 @@ export const fetchNearbyData = createAsyncThunk(
   }
 );
 
+export const updateCurrentLocation = createAsyncThunk(
+  'location/updateCurrentLocation',
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await locationService.getCurrentLocation();
+      return data;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const locationSlice = createSlice({
   name: 'location',
   initialState,
   reducers: {
     updateRegion: (state, action: PayloadAction<Region>) => {
       state.region = action.payload;
+    },
+    clearLocationError: (state) => {
+      state.error = null;
     },
   },
   extraReducers: (builder) => {
@@ -95,9 +110,22 @@ const locationSlice = createSlice({
       .addCase(fetchNearbyData.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+      .addCase(updateCurrentLocation.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateCurrentLocation.fulfilled, (state, action) => {
+        state.loading = false;
+        state.latitude = action.payload.latitude;
+        state.longitude = action.payload.longitude;
+      })
+      .addCase(updateCurrentLocation.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });
 
-export const { updateRegion } = locationSlice.actions;
+export const { updateRegion, clearLocationError } = locationSlice.actions;
 export default locationSlice.reducer;

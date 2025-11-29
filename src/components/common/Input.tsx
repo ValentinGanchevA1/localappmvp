@@ -9,6 +9,7 @@ import {
   TextStyle,
   Platform,
 } from 'react-native';
+import { COLORS, SPACING, TYPOGRAPHY } from '@/config/theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -59,28 +60,28 @@ export const Input: React.FC<InputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: SPACING.MD,
     width: '100%',
   },
   label: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.SIZES.MD,
     fontWeight: '500',
     color: '#333',
-    marginBottom: 8,
+    marginBottom: SPACING.SM,
   },
   input: {
     height: 50,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 12, // Softened border radius for a modern look
-    paddingHorizontal: 16,
-    fontSize: 16,
+    paddingHorizontal: SPACING.MD,
+    fontSize: TYPOGRAPHY.SIZES.MD,
     backgroundColor: '#f9f9f9', // Slightly off-white background
-    color: '#000',
+    color: COLORS.BLACK,
     // GEN: Added platform-specific shadow for better depth perception.
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: COLORS.BLACK,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 2,
@@ -91,12 +92,12 @@ const styles = StyleSheet.create({
     }),
   },
   inputError: {
-    borderColor: '#FF3B30',
+    borderColor: COLORS.DANGER,
     backgroundColor: '#FFF6F5', // Add a subtle background tint for errors
   },
   errorText: {
-    fontSize: 14,
-    color: '#FF3B30',
+    fontSize: TYPOGRAPHY.SIZES.SM,
+    color: COLORS.DANGER,
     marginTop: 6,
     paddingLeft: 4,
   },

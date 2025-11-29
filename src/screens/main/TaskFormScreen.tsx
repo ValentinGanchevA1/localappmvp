@@ -3,9 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { createTask, updateTask } from '@/store/slices/taskSlice';
-import { Button, Input } from '@/components/common';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/common';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
+import { COLORS, SPACING, TYPOGRAPHY } from '@/config/theme';
 
 export const TaskFormScreen: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -94,23 +96,23 @@ export const TaskFormScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.WHITE,
   },
   content: {
-    padding: 20,
+    padding: SPACING.LG,
   },
   header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontSize: TYPOGRAPHY.SIZES.LG + 6,
+    fontWeight: TYPOGRAPHY.WEIGHTS.BOLD,
+    marginBottom: SPACING.LG,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 8,
-    color: '#333',
+    fontSize: TYPOGRAPHY.SIZES.MD,
+    fontWeight: TYPOGRAPHY.WEIGHTS.SEMIBOLD,
+    marginBottom: SPACING.SM,
+    color: COLORS.BLACK,
   },
   pickerContainer: {
-    marginBottom: 16,
+    marginBottom: SPACING.MD,
   },
 });

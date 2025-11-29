@@ -14,6 +14,7 @@ import {
   ImageLibraryOptions,
   ImagePickerResponse,
 } from 'react-native-image-picker';
+import { COLORS } from '@/config/theme';
 
 interface ImagePickerProps {
   value: string | null;
@@ -62,7 +63,7 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
         </View>
       )}
       <View style={styles.editIconContainer}>
-        <Icon name="pencil" size={20} color="#fff" />
+        <Icon name="pencil" size={20} color={COLORS.WHITE} />
       </View>
     </TouchableOpacity>
   );
@@ -74,24 +75,16 @@ const BORDER_RADIUS = CONTAINER_SIZE / 2;
 const EDIT_ICON_SIZE = 20;
 const EDIT_ICON_CONTAINER_PADDING = 5;
 
-const colors = {
-  placeholderBg: '#e9ecef',
-  placeholderIcon: '#999',
-  border: '#ced4da',
-  editIconBg: '#007AFF',
-  white: '#fff',
-};
-
 const styles = StyleSheet.create({
   container: {
     width: CONTAINER_SIZE,
     height: CONTAINER_SIZE,
     borderRadius: BORDER_RADIUS,
-    backgroundColor: colors.placeholderBg,
+    backgroundColor: '#e9ecef',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: '#ced4da',
   },
   image: {
     width: '100%',
@@ -106,10 +99,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
     position: 'absolute',
-    backgroundColor: colors.editIconBg,
+    backgroundColor: COLORS.PRIMARY,
     borderRadius: EDIT_ICON_SIZE + EDIT_ICON_CONTAINER_PADDING, // Make it circular
     padding: EDIT_ICON_CONTAINER_PADDING,
     borderWidth: 2,
-    borderColor: colors.white,
+    borderColor: COLORS.WHITE,
   },
 });

@@ -1,5 +1,5 @@
-// src/types/navigation.ts
-import { NavigationProp } from '@react-navigation/native';
+import { NavigationProp, RouteProp } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 export type AuthStackParamList = {
   Login: undefined;
@@ -22,3 +22,6 @@ export type RootStackParamList = {
 };
 
 export type AuthNavigationProp = NavigationProp<AuthStackParamList>;
+
+export type MainTabNavigationProp<T extends keyof MainTabParamList> =
+  BottomTabNavigationProp<MainTabParamList, T>;

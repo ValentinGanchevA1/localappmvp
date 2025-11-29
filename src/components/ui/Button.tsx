@@ -1,4 +1,4 @@
-// src/components/common/Button.tsx
+// src/components/ui/Button.tsx
 import React from 'react';
 import {
   TouchableOpacity,
@@ -7,7 +7,9 @@ import {
   ActivityIndicator,
   ViewStyle,
   TextStyle,
+  Platform,
 } from 'react-native';
+import { COLORS, SPACING, TYPOGRAPHY } from '@/config/theme';
 
 interface ButtonProps {
   title: string;
@@ -16,7 +18,10 @@ interface ButtonProps {
   disabled?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
-  variant?: 'primary' | 'secondary' | 'outline';
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'success';
+  size?: 'small' | 'medium' | 'large';
+  fullWidth?: boolean;
+  testID?: string;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -27,25 +32,53 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
   variant = 'primary',
+  size = 'medium',
+  fullWidth = false,
+  testID,
 }) => {
   const isDisabled = disabled || loading;
 
+  const getButtonHeight = () => {
+    switch (size) {
+      case 'small':
+        return 40;
+      case 'large':
+        return 56;
+      default:
+        return 50;
+    }
+  };
+
+  const getTextSize = () => {
+    switch (size) {
+      case 'small':
+        return TYPOGRAPHY.SIZES.SM;
+      case 'large':
+        return TYPOGRAPHY.SIZES.LG;
+      default:
+        return TYPOGRAPHY.SIZES.MD;
+    }
+  };
+
   return (
     <TouchableOpacity
+      testID={testID || `button-${variant}`}
       style={[
         styles.button,
         styles[variant],
+        { height: getButtonHeight() },
+        fullWidth && styles.fullWidth,
         isDisabled && styles.disabled,
         style,
       ]}
       onPress={onPress}
       disabled={isDisabled}
-      activeOpacity={0.8}
+      activeOpacity={0.7}
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === 'outline' ? '#007AFF' : '#fff'}
-          // FIX: Removed invalid escaped quotes from the size prop.
+          testID="activity-indicator"
+          color={variant === 'outline' ? COLORS.PRIMARY : COLORS.WHITE}
           size="small"
         />
       ) : (
@@ -53,6 +86,7 @@ export const Button: React.FC<ButtonProps> = ({
           style={[
             styles.text,
             styles[`${variant}Text`],
+            { fontSize: getTextSize() },
             isDisabled && styles.disabledText,
             textStyle,
           ]}
@@ -64,41 +98,64 @@ export const Button: React.FC<ButtonProps> = ({
   );
 };
 
-// ... styles remain the same
 const styles = StyleSheet.create({
   button: {
-    height: 50,
-    borderRadius: 25,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: SPACING.LG,
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.BLACK,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  fullWidth: {
+    width: '100%',
   },
   primary: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.PRIMARY,
   },
   secondary: {
-    backgroundColor: '#6C7B7F',
+    backgroundColor: COLORS.SECONDARY,
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: '#007AFF',
+    borderColor: COLORS.PRIMARY,
+  },
+  danger: {
+    backgroundColor: COLORS.DANGER,
+  },
+  success: {
+    backgroundColor: COLORS.SUCCESS,
   },
   disabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   text: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontWeight: TYPOGRAPHY.WEIGHTS.SEMIBOLD,
   },
   primaryText: {
-    color: '#fff',
+    color: COLORS.WHITE,
   },
   secondaryText: {
-    color: '#fff',
+    color: COLORS.WHITE,
   },
   outlineText: {
-    color: '#007AFF',
+    color: COLORS.PRIMARY,
+  },
+  dangerText: {
+    color: COLORS.WHITE,
+  },
+  successText: {
+    color: COLORS.WHITE,
   },
   disabledText: {
     opacity: 0.7,

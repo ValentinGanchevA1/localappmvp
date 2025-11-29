@@ -9,7 +9,7 @@ import axios, {
 import { store } from '@/store';
 import { logout } from '@/store/slices/authSlice';
 import { errorHandler, ErrorCodes, AppError as CustomAppError } from './errorHandler';
-import { AppConfig } from '@/config/app';
+import { AppConfig } from '@/config/AppConfig';
 
 // Types
 interface ApiResponse<T = any> {

@@ -1,6 +1,7 @@
 // src/components/common/CodeInput.tsx
 import React from 'react';
 import { View, TextInput, StyleSheet, TextInputProps } from 'react-native';
+import { COLORS, SPACING, TYPOGRAPHY } from '@/config/theme';
 
 interface CodeInputProps extends TextInputProps {
   length?: number;
@@ -33,12 +34,12 @@ const styles = StyleSheet.create({
   input: {
     height: 60,
     width: '90%',
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: TYPOGRAPHY.SIZES.LG + 6,
+    fontWeight: TYPOGRAPHY.WEIGHTS.BOLD,
     textAlign: 'center',
     letterSpacing: 15, // Creates visual separation for digits
     borderBottomWidth: 2,
     borderColor: '#ddd',
-    color: '#333',
+    color: COLORS.BLACK,
   },
 });

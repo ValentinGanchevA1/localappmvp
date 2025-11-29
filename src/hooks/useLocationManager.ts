@@ -1,64 +1,191 @@
-// src/hooks/useLocationManager.ts - REFACTORED
-import { useEffect } from 'react';
-import { useSelector } from 'react-redux';
+// src/hooks/useLocationManager.ts
+import { useEffect, useCallback, useRef } from 'react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Region } from 'react-native-maps';
-import { RootState, AppDispatch } from '@/store';
-import { updateRegion, fetchNearbyData } from '@/store/slices/locationSlice'; // Consolidated
-import { User } from '@/types/user';
+import {
+  updateRegion,
+  fetchNearbyData,
+  updateCurrentLocation,
+} from '@/store/slices/locationSlice';
 import { requestLocationPermission } from '@/utils/permissions';
 import { locationService } from '@/services/locationService';
 
-export const useLocationManager = (
-  user: User | null,
-  dispatch: AppDispatch,
-) => {
-  const locationState = useSelector((state: RootState) => state.location);
-  const { region } = locationState;
-  const isInitializing = !region && !!user; // Derive from state
+/**
+ * useLocationManager - Advanced location management for MapScreen
+ *
+ * Handles:
+ * - Region updates
+ * - Debounced nearby user fetching
+ * - Location initialization
+ * - Background/foreground transitions
+ */
+export const useLocationManager = () => {
+  const dispatch = useAppDispatch();
+  const locationState = useAppSelector((state) => state.location);
+  const authState = useAppSelector((state) => state.auth);
 
+  const fetchTimeoutRef = useRef<NodeJS.Timeout>();
+  const lastFetchRef = useRef<{ latitude: number; longitude: number } | null>(
+    null
+  );
+
+  /**
+   * Initialize location on mount
+   */
   useEffect(() => {
     const initialize = async () => {
-      if (!user) return;
+      if (!authState.isAuthenticated) return;
 
       try {
         const permission = await requestLocationPermission();
         if (permission !== 'granted') {
-          // Dispatch an error action or handle it appropriately
-          console.error('Location permission denied');
+          console.warn('Location permission denied');
           return;
         }
 
-        const loc = await locationService.getCurrentLocation();
+        const location = await locationService.getCurrentLocation();
+
+        // Set initial region
         const initialRegion: Region = {
-          latitude: loc.latitude,
-          longitude: loc.longitude,
+          latitude: location.latitude,
+          longitude: location.longitude,
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         };
+
         dispatch(updateRegion(initialRegion));
-        dispatch(
-          fetchNearbyData({ latitude: loc.latitude, longitude: loc.longitude }),
+
+        // Fetch nearby users
+        await dispatch(
+          fetchNearbyData({
+            latitude: location.latitude,
+            longitude: location.longitude,
+            radius: 1000,
+          })
         );
-      } catch (err) {
-        console.error('Location init failed:', err);
-        // Dispatch error if the slice supports it
+
+        lastFetchRef.current = {
+          latitude: location.latitude,
+          longitude: location.longitude,
+        };
+      } catch (error) {
+        console.error('Location initialization failed:', error);
       }
     };
 
-    initialize().catch(err =>
-      console.error('Failed to initialize location manager:', err),
-    );
-  }, [user, dispatch]);
+    initialize();
+  }, [authState.isAuthenticated, dispatch]);
 
-  const setRegion = (newRegion: Region) => {
-    dispatch(updateRegion(newRegion));
-    // Debounced fetch in MapScreen
-  };
+  /**
+   * Update map region
+   */
+  const setRegion = useCallback(
+    (newRegion: Region) => {
+      dispatch(updateRegion(newRegion));
+    },
+    [dispatch]
+  );
+
+  /**
+   * Debounced fetch of nearby users when region changes
+   */
+  const debouncedFetchNearby = useCallback(
+    (latitude: number, longitude: number) => {
+      // Clear existing timeout
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+
+      // Check if we've moved significantly
+      const lastFetch = lastFetchRef.current;
+      if (lastFetch) {
+        const distance = locationService.calculateDistance(
+          lastFetch.latitude,
+          lastFetch.longitude,
+          latitude,
+          longitude
+        );
+
+        // Only fetch if moved more than 100 meters
+        if (distance < 100) {
+          return;
+        }
+      }
+
+      // Set new timeout
+      fetchTimeoutRef.current = setTimeout(async () => {
+        try {
+          await dispatch(
+            fetchNearbyData({
+              latitude,
+              longitude,
+              radius: 1000,
+            })
+          ).unwrap();
+
+          lastFetchRef.current = { latitude, longitude };
+        } catch (error) {
+          console.error('Failed to fetch nearby users:', error);
+        }
+      }, 1000); // 1 second debounce
+    },
+    [dispatch]
+  );
+
+  /**
+   * Handle region change (called by MapView)
+   */
+  const onRegionChangeComplete = useCallback(
+    (region: Region) => {
+      setRegion(region);
+      debouncedFetchNearby(region.latitude, region.longitude);
+    },
+    [setRegion, debouncedFetchNearby]
+  );
+
+  /**
+   * Refresh current location
+   */
+  const refreshLocation = useCallback(async () => {
+    try {
+      const result = await dispatch(updateCurrentLocation()).unwrap();
+
+      // Update region to new location
+      const newRegion: Region = {
+        latitude: result.latitude,
+        longitude: result.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+
+      dispatch(updateRegion(newRegion));
+
+      return { success: true, data: result };
+    } catch (error: any) {
+      console.error('Failed to refresh location:', error);
+      return { success: false, error: error.message };
+    }
+  }, [dispatch]);
+
+  /**
+   * Cleanup on unmount
+   */
+  useEffect(() => {
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return {
     ...locationState,
-    isInitializing,
+    isInitializing: !locationState.region && authState.isAuthenticated,
     setRegion,
-    locationError: locationState.error ? { message: locationState.error } : null
+    onRegionChangeComplete,
+    refreshLocation,
+    locationError: locationState.error
+      ? { message: locationState.error }
+      : null,
   };
 };

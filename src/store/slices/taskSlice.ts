@@ -1,7 +1,7 @@
 // src/store/slices/taskSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Task, CreateTaskDto, UpdateTaskDto } from '@/types/task';
-import { apiClient } from '@/services/api';
+import { taskService } from '@/services/taskService';
 
 interface TaskState {
   tasks: Task[];
@@ -22,8 +22,8 @@ export const fetchTasks = createAsyncThunk(
   'task/fetchTasks',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await apiClient.get<Task[]>('/tasks');
-      return response.data;
+      const data = await taskService.getTasks();
+      return data;
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -34,8 +34,8 @@ export const createTask = createAsyncThunk(
   'task/createTask',
   async (taskData: CreateTaskDto, { rejectWithValue }) => {
     try {
-      const response = await apiClient.post<Task>('/tasks', taskData);
-      return response.data;
+      const data = await taskService.createTask(taskData);
+      return data;
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -46,8 +46,8 @@ export const updateTask = createAsyncThunk(
   'task/updateTask',
   async ({ id, data }: { id: string; data: UpdateTaskDto }, { rejectWithValue }) => {
     try {
-      const response = await apiClient.put<Task>(`/tasks/${id}`, data);
-      return response.data;
+      const response = await taskService.updateTask(id, data);
+      return response;
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -58,7 +58,7 @@ export const deleteTask = createAsyncThunk(
   'task/deleteTask',
   async (id: string, { rejectWithValue }) => {
     try {
-      await apiClient.delete(`/tasks/${id}`);
+      await taskService.deleteTask(id);
       return id;
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -76,6 +76,9 @@ const taskSlice = createSlice({
     },
     clearTaskError: state => {
       state.error = null;
+    },
+    clearTasks: state => {
+      state.tasks = [];
     },
   },
   extraReducers: builder => {
@@ -111,5 +114,5 @@ const taskSlice = createSlice({
   },
 });
 
-export const { selectTask, clearTaskError } = taskSlice.actions;
+export const { selectTask, clearTaskError, clearTasks } = taskSlice.actions;
 export default taskSlice.reducer;

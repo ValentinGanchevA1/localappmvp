@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
+import { COLORS, TYPOGRAPHY } from '@/config/theme';
 
 type AvatarSize = 'small' | 'medium' | 'large';
 
@@ -67,8 +68,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   initials: {
-    color: '#2B6CB0',
-    fontWeight: '600',
+    color: COLORS.PRIMARY,
+    fontWeight: TYPOGRAPHY.WEIGHTS.SEMIBOLD,
   },
 });
 
