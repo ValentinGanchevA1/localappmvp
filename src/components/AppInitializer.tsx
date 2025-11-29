@@ -1,6 +1,5 @@
-// src/components/AppInitializer.tsx
 import React, { useEffect, useState } from 'react';
-import { AppState, AppStateStatus, Platform } from 'react-native';
+import { AppState, AppStateStatus } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from '@/hooks/useLocation';
 import { useAppDispatch } from '@/store/hooks';
@@ -10,17 +9,10 @@ interface AppInitializerProps {
 	children: React.ReactNode;
 }
 
-/**
- * AppInitializer handles all app-wide initialization logic:
- * - Start location tracking for authenticated users
- * - Fetch user profile on mount
- * - Handle app state changes (background/foreground)
- * - Initialize services and subscriptions
- */
 export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
 	const dispatch = useAppDispatch();
 	const { isAuthenticated, user } = useAuth();
-	const { startTracking, stopTracking } = useLocation();
+	const { startTracking } = useLocation();
 	const [appState, setAppState] = useState<AppStateStatus>(
 		AppState.currentState
 	);
@@ -31,10 +23,10 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
 			if (!isAuthenticated || !user) return;
 
 			try {
-				// Fetch fresh user profile data
-				await dispatch(fetchUserProfile()).unwrap();
+				// Fetch user profile (non-blocking - don't await)
+				dispatch(fetchUserProfile());
 
-				// Start location tracking if user is authenticated
+				// Start location tracking
 				await startTracking();
 
 				if (__DEV__) {
@@ -42,43 +34,28 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
 				}
 			} catch (error) {
 				console.error('[AppInitializer] Initialization error:', error);
+				// Continue anyway - profile fetch is optional
 			}
 		};
 
 		initializeApp();
 
-		// Cleanup on unmount or logout
 		return () => {
 			if (isAuthenticated) {
-				stopTracking();
+				// Optional: stop tracking on unmount
 			}
 		};
-	}, [isAuthenticated, user?.id]); // Re-run if auth status or user changes
+	}, [isAuthenticated, user?.id, dispatch]);
 
-	// Handle app state changes (background/foreground)
+	// Handle app state changes
 	useEffect(() => {
-		const subscription = AppState.addEventListener('change', nextAppState => {
+		const subscription = AppState.addEventListener('change', (nextAppState) => {
 			// App came to foreground
 			if (appState.match(/inactive|background/) && nextAppState === 'active') {
 				if (isAuthenticated) {
-					// Refresh data when app comes to foreground
 					dispatch(fetchUserProfile());
-					startTracking();
-
 					if (__DEV__) {
-						console.log('[AppInitializer] App resumed, refreshing data');
-					}
-				}
-			}
-
-			// App went to background
-			if (appState === 'active' && nextAppState.match(/inactive|background/)) {
-				if (isAuthenticated) {
-					// Optionally stop location tracking to save battery
-					// stopTracking();
-
-					if (__DEV__) {
-						console.log('[AppInitializer] App backgrounded');
+						console.log('[AppInitializer] App resumed, refreshing profile');
 					}
 				}
 			}
@@ -89,15 +66,7 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
 		return () => {
 			subscription.remove();
 		};
-	}, [appState, isAuthenticated]);
-
-	// Optional: Handle deep links
-	useEffect(() => {
-		if (Platform.OS === 'ios' || Platform.OS === 'android') {
-			// Add deep link handling here if needed
-			// Example: Linking.addEventListener('url', handleDeepLink);
-		}
-	}, []);
+	}, [appState, isAuthenticated, dispatch]);
 
 	return <>{children}</>;
 };

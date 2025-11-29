@@ -1,9 +1,9 @@
 // src/utils/security.ts
 
-export class SecurityUtils {
-  static sanitizeInput(text: string) {
-    // A basic sanitizer that removes HTML tags.
-    // For a real-world app, consider a more robust library like DOMPurify.
+export const SecurityUtils = {
+  sanitizeInput: (text: string): string => {
+    // Remove any HTML tags to prevent XSS
+    // Using replace with a global regex to support all environments
     return text.replace(/<[^>]*>?/gm, '');
-  }
-}
+  },
+};

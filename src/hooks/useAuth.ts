@@ -1,122 +1,71 @@
-
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   loginWithPhone,
   registerWithPhone,
-  verifyCode,
   logout,
   clearError,
-  updateUser,
-  refreshToken,
 } from '@/store/slices/authSlice';
-import { resetUserState } from '@/store/slices/userSlice';
-import { clearTasks } from '@/store/slices/taskSlice';
-import { User } from '@/types/user';
-
-export interface LoginCredentials {
-  phone: string;
-  password?: string;
-}
+import { LoginCredentials, RegisterCredentials } from '@/types/auth';
 
 /**
- * useAuth Hook - Centralized authentication logic
- *
- * Provides all authentication-related functionality including:
- * - Login/Register
- * - Phone verification
- * - Logout
- * - Error handling
- * - Auth state access
+ * useAuth Hook - Handles all authentication
  */
 export const useAuth = () => {
   const dispatch = useAppDispatch();
   const authState = useAppSelector((state) => state.auth);
 
-  /**
-   * Login with phone and password
-   */
   const login = useCallback(
     async (credentials: LoginCredentials) => {
-      return await dispatch(loginWithPhone(credentials));
+      // Ensure credentials are strings, not arrays
+      const cleanCredentials = {
+        phone: String(credentials.phone).trim(),
+        password: String(credentials.password).trim(),
+      };
+
+      console.log('[useAuth] Login attempt:', { phone: cleanCredentials.phone });
+
+      const result = await dispatch(loginWithPhone(cleanCredentials));
+      return result;
     },
     [dispatch]
   );
 
-  /**
-   * Register new user
-   */
-  const registerUser = useCallback(
-    async (credentials: LoginCredentials) => {
-      return await dispatch(registerWithPhone(credentials));
+  const register = useCallback(
+    async (credentials: RegisterCredentials) => {
+      // Ensure all fields are strings or undefined, never arrays
+      const cleanCredentials = {
+        phone: String(credentials.phone).trim(),
+        password: String(credentials.password).trim(),
+        name: credentials.name ? String(credentials.name).trim() : undefined,
+        email: credentials.email ? String(credentials.email).trim() : undefined,
+      };
+
+      console.log('[useAuth] Register attempt:', { phone: cleanCredentials.phone });
+
+      const result = await dispatch(registerWithPhone(cleanCredentials));
+      return result;
     },
     [dispatch]
   );
 
-  /**
-   * Verify phone with code
-   */
-  const verify = useCallback(
-    async (code: string) => {
-      return await dispatch(verifyCode(code));
-    },
-    [dispatch]
-  );
-
-  /**
-   * Sign out user and clear all data
-   */
-  const signOut = useCallback(async () => {
-    // Clear all slices
+  const signOut = useCallback(() => {
     dispatch(logout());
-    dispatch(resetUserState());
-    dispatch(clearTasks());
-
-    // Optional: Call backend to invalidate token
-    // await authService.logout();
   }, [dispatch]);
 
-  /**
-   * Clear authentication error
-   */
   const clearAuthError = useCallback(() => {
     dispatch(clearError());
   }, [dispatch]);
 
-  /**
-   * Update current user data
-   */
-  const updateCurrentUser = useCallback(
-    (userData: Partial<User>) => {
-      dispatch(updateUser(userData));
-    },
-    [dispatch]
-  );
-
-  /**
-   * Refresh authentication token
-   */
-  const refresh = useCallback(async () => {
-    return await dispatch(refreshToken());
-  }, [dispatch]);
-
-  /**
-   * Check if user is authenticated
-   */
-  const isAuthenticated = authState.isAuthenticated && !!authState.token;
-
   return {
     // State
     ...authState,
-    isAuthenticated,
+    isAuthenticated: authState.isAuthenticated && !!authState.token,
 
     // Actions
     login,
-    registerUser,
-    verify,
+    register,
     signOut,
     clearAuthError,
-    updateCurrentUser,
-    refresh,
   };
 };

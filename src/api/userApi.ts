@@ -1,6 +1,6 @@
 // src/api/userApi.ts
 import axiosInstance from './axiosInstance';
-import { User } from '@/types/user';
+import { User, UserPreferences } from '@/types/user';
 
 // User profile operations
 export const userApi = {
@@ -50,7 +50,7 @@ export const userApi = {
   },
 
   // Update preferences
-  updatePreferences: async (preferences: any) => {
+  updatePreferences: async (preferences: Partial<UserPreferences>) => {
     const response = await axiosInstance.put('/user/preferences', preferences);
     return response.data;
   },

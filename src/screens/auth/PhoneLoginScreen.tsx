@@ -1,4 +1,3 @@
-// src/screens/auth/PhoneLoginScreen.tsx
 import React, { useState, useEffect } from 'react';
 import {
 	View,
@@ -26,12 +25,12 @@ export const PhoneLoginScreen: React.FC = () => {
 	const { login, loading, error, clearAuthError } = useAuth();
 	const navigation = useNavigation<NavigationProp>();
 
-	// Clear error when component unmounts
 	useEffect(() => {
-		return () => clearAuthError();
+		return () => {
+			clearAuthError();
+		};
 	}, [clearAuthError]);
 
-	// Show error alert
 	useEffect(() => {
 		if (error) {
 			Alert.alert('Login Failed', error, [
@@ -41,9 +40,8 @@ export const PhoneLoginScreen: React.FC = () => {
 	}, [error, clearAuthError]);
 
 	const handleLogin = async () => {
-		// Validation
 		if (!phone.trim()) {
-			Alert.alert('Error', 'Please enter your phone number');
+			Alert.alert('Error', 'Please enter your phone number (e.g., +1234567890)');
 			return;
 		}
 
@@ -53,24 +51,28 @@ export const PhoneLoginScreen: React.FC = () => {
 		}
 
 		try {
-			const result = await login({ phone: phone.trim(), password });
+			const result = await login({
+				phone: phone.trim(),
+				password: password.trim(),
+			});
 
 			if (result.meta.requestStatus === 'fulfilled') {
-				// Navigation handled by RootNavigator based on auth state
-				console.log('Login successful');
+				console.log('[PhoneLoginScreen] Login successful');
+			} else if (result.meta.requestStatus === 'rejected') {
+				console.error('[PhoneLoginScreen] Login failed:', result.payload);
 			}
-		} catch (err) {
-			console.error('Login error:', err);
+		} catch (err: any) {
+			console.error('[PhoneLoginScreen] Login error:', err);
 		}
 	};
 
 	const goToSignup = () => {
+		clearAuthError();
 		navigation.navigate('Signup');
 	};
 
-	const goToVerification = () => {
-		navigation.navigate('Verification', { phone });
-	};
+	const isPhoneValid = /^\+[1-9]\d{1,14}$/.test(phone);
+	const isFormValid = isPhoneValid && password.trim().length >= 6;
 
 	return (
 		<KeyboardAvoidingView
@@ -96,8 +98,11 @@ export const PhoneLoginScreen: React.FC = () => {
 						textContentType="telephoneNumber"
 						autoCapitalize="none"
 						autoCorrect={false}
-						testID="phone-input"
+						editable={!loading}
 					/>
+					<Text style={styles.hint}>
+						Format: +[country code][number] (e.g., +1234567890)
+					</Text>
 
 					<Input
 						label="Password"
@@ -108,28 +113,22 @@ export const PhoneLoginScreen: React.FC = () => {
 						textContentType="password"
 						autoCapitalize="none"
 						autoCorrect={false}
-						testID="password-input"
+						editable={!loading}
 					/>
 
 					<Button
 						title="Sign In"
 						onPress={handleLogin}
 						loading={loading}
-						disabled={!phone.trim() || !password.trim()}
-						testID="login-button"
+						disabled={!isFormValid || loading}
+						fullWidth
+						style={styles.signInButton}
 					/>
-
-					<TouchableOpacity
-						onPress={goToVerification}
-						style={styles.forgotButton}
-					>
-						<Text style={styles.forgotText}>Verify Phone Instead</Text>
-					</TouchableOpacity>
 				</View>
 
 				<View style={styles.footer}>
-					<Text style={styles.footerText}>Don't have an account?</Text>
-					<TouchableOpacity onPress={goToSignup}>
+					<Text style={styles.footerText}>Don't have an account? </Text>
+					<TouchableOpacity onPress={goToSignup} disabled={loading}>
 						<Text style={styles.signupText}>Sign Up</Text>
 					</TouchableOpacity>
 				</View>
@@ -165,14 +164,15 @@ const styles = StyleSheet.create({
 	form: {
 		marginBottom: SPACING.LG,
 	},
-	forgotButton: {
-		alignSelf: 'center',
-		marginTop: SPACING.MD,
-	},
-	forgotText: {
+	hint: {
 		fontSize: TYPOGRAPHY.SIZES.SM,
-		color: COLORS.PRIMARY,
-		fontWeight: TYPOGRAPHY.WEIGHTS.SEMIBOLD,
+		color: '#999',
+		marginTop: -SPACING.SM,
+		marginBottom: SPACING.MD,
+		marginLeft: SPACING.SM,
+	},
+	signInButton: {
+		marginTop: SPACING.MD,
 	},
 	footer: {
 		flexDirection: 'row',
@@ -182,7 +182,6 @@ const styles = StyleSheet.create({
 	footerText: {
 		fontSize: TYPOGRAPHY.SIZES.SM,
 		color: '#8E8E93',
-		marginRight: 4,
 	},
 	signupText: {
 		fontSize: TYPOGRAPHY.SIZES.SM,

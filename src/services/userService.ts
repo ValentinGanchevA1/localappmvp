@@ -1,40 +1,20 @@
-// src/services/userService.ts
-import { apiClient } from './api';
+import { userApi } from '@/api/userApi';
 import { UserProfile, UserPreferences } from '@/types/user';
 
 export const userService = {
-  async getProfile(userId: string) {
-    return await apiClient.get<UserProfile>(`/users/${userId}/profile`);
+  getProfile: (userId: string) => {
+    return userApi.getUserById(userId);
   },
-
-  async updateProfile(profileData: Partial<UserProfile>) {
-    return await apiClient.put<UserProfile>('/user/profile', profileData);
+  updateProfile: (profileData: Partial<UserProfile>) => {
+    return userApi.updateUserProfile(profileData);
   },
-
-  async updatePreferences(preferences: Partial<UserPreferences>) {
-    return await apiClient.put('/user/preferences', preferences);
+  updatePreferences: (preferences: Partial<UserPreferences>) => {
+    return userApi.updatePreferences(preferences);
   },
-
-  async uploadProfileImage(imageUri: string) {
-    const formData = new FormData();
-    formData.append('avatar', {
-      uri: imageUri,
-      type: 'image/jpeg',
-      name: 'avatar.jpg',
-    } as any);
-
-    return await apiClient.post<{ imageUrl: string }>(
-      '/user/avatar',
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
+  uploadProfileImage: (imageUri: string) => {
+    return userApi.uploadAvatar(imageUri);
   },
-
-  async deleteAccount() {
-    return await apiClient.delete('/user/account');
+  deleteAccount: () => {
+    return userApi.deleteAccount();
   },
 };

@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input, ImagePicker } from '@/components/common';
 import { useAppDispatch } from '@/store/hooks';
-import { updateUser } from '@/store/slices/authSlice';
+import { updateUserProfile } from '@/store/slices/userSlice';
 import { COLORS, SPACING, TYPOGRAPHY } from '@/config/theme';
 
 export const ProfileSetupScreen: React.FC = () => {
@@ -31,19 +31,19 @@ export const ProfileSetupScreen: React.FC = () => {
 
 		try {
 			// Update user profile in Redux
-			dispatch(updateUser({ name, email, avatar: avatar || undefined }));
+			await dispatch(updateUserProfile({ name, email, avatar: avatar || undefined })).unwrap();
 
 			// In real app, you'd upload avatar and update backend
-			// await userService.updateProfile({ name, email });
 			// if (avatar) {
-			//   await userService.uploadAvatar(avatar);
+			//   await dispatch(uploadProfileImage(avatar)).unwrap();
 			// }
 
 			Alert.alert('Success', 'Profile setup complete!', [
 				{ text: 'OK', onPress: () => {} },
 			]);
-		} catch (error) {
-			Alert.alert('Error', 'Failed to update profile');
+		} catch (error: any) {
+			console.error('Failed to update profile:', error);
+			Alert.alert('Error', error.message || 'Failed to update profile');
 		} finally {
 			setLoading(false);
 		}

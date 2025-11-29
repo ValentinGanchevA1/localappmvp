@@ -79,7 +79,7 @@ class ApiClient {
   }
 
   private handleRequestError(error: any): Promise<never> {
-    return Promise.reject(error);
+    throw error;
   }
 
   private handleResponse(response: AxiosResponse<ApiResponse>): AxiosResponse {
@@ -171,7 +171,7 @@ class ApiClient {
 
   private processQueue(error: any): void {
     for (const { resolve, reject } of this.failedQueue) {
-      error ? reject(error) : resolve();
+      error ? reject(new Error(error)) : resolve();
     }
     this.failedQueue = [];
   }

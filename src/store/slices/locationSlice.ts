@@ -1,75 +1,50 @@
-// src/store/slices/locationSlice.ts
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction, isAnyOf } from '@reduxjs/toolkit';
 import { locationService } from '@/services/locationService';
 import { Region } from 'react-native-maps';
 
 interface LocationState {
   latitude: number | null;
   longitude: number | null;
+  accuracy: number | null;
   tracking: boolean;
   nearbyUsers: any[];
   loading: boolean;
   error: string | null;
   region: Region | null;
+  lastUpdated: number | null;
 }
 
 const initialState: LocationState = {
   latitude: null,
   longitude: null,
+  accuracy: null,
   tracking: false,
   nearbyUsers: [],
   loading: false,
   error: null,
   region: null,
+  lastUpdated: null,
 };
 
-export const startLocationTracking = createAsyncThunk(
-  'location/startTracking',
-  async (_, { rejectWithValue }) => {
-    try {
-      await locationService.start();
-      return true;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
-    }
+export const updateCurrentLocation = createAsyncThunk('location/updateCurrentLocation', async (_, { rejectWithValue }) => {
+  try {
+    return await locationService.getCurrentLocation();
+  } catch (error: any) {
+    return rejectWithValue(error.message);
   }
-);
+});
 
-export const stopLocationTracking = createAsyncThunk(
-  'location/stopTracking',
-  async (_, { rejectWithValue }) => {
-    try {
-      locationService.stop();
-      return true;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
-    }
+export const fetchNearbyData = createAsyncThunk('location/fetchNearbyData', async (params: { latitude: number; longitude: number; radius?: number }, { rejectWithValue }) => {
+  try {
+    const { data } = await locationService.fetchNearby(params);
+    return data || [];
+  } catch (error: any) {
+    return rejectWithValue(error.message);
   }
-);
+});
 
-export const fetchNearbyData = createAsyncThunk(
-  'location/fetchNearbyData',
-  async (params: { latitude: number; longitude: number; radius?: number }, { rejectWithValue }) => {
-    try {
-      const data = await locationService.fetchNearby(params);
-      return data;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-export const updateCurrentLocation = createAsyncThunk(
-  'location/updateCurrentLocation',
-  async (_, { rejectWithValue }) => {
-    try {
-      const data = await locationService.getCurrentLocation();
-      return data;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
+export const startLocationTracking = createAsyncThunk('location/startTracking', () => true);
+export const stopLocationTracking = createAsyncThunk('location/stopTracking', () => true);
 
 const locationSlice = createSlice({
   name: 'location',
@@ -84,45 +59,31 @@ const locationSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(startLocationTracking.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      .addCase(updateCurrentLocation.fulfilled, (state, action: any) => {
+        state.latitude = action.payload.latitude;
+        state.longitude = action.payload.longitude;
+        state.accuracy = action.payload.accuracy;
+        state.lastUpdated = Date.now();
+      })
+      .addCase(fetchNearbyData.fulfilled, (state, action) => {
+        state.nearbyUsers = action.payload;
       })
       .addCase(startLocationTracking.fulfilled, (state) => {
-        state.loading = false;
         state.tracking = true;
-      })
-      .addCase(startLocationTracking.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
       })
       .addCase(stopLocationTracking.fulfilled, (state) => {
         state.tracking = false;
       })
-      .addCase(fetchNearbyData.pending, (state) => {
+      .addMatcher(isAnyOf(updateCurrentLocation.pending, fetchNearbyData.pending), (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchNearbyData.fulfilled, (state, action) => {
-        state.loading = false;
-        state.nearbyUsers = action.payload;
-      })
-      .addCase(fetchNearbyData.rejected, (state, action) => {
+      .addMatcher(isAnyOf(updateCurrentLocation.rejected, fetchNearbyData.rejected), (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
-      .addCase(updateCurrentLocation.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(updateCurrentLocation.fulfilled, (state, action) => {
+      .addMatcher(isAnyOf(updateCurrentLocation.fulfilled, fetchNearbyData.fulfilled), (state) => {
         state.loading = false;
-        state.latitude = action.payload.latitude;
-        state.longitude = action.payload.longitude;
-      })
-      .addCase(updateCurrentLocation.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
       });
   },
 });

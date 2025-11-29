@@ -1,5 +1,4 @@
-// src/hooks/useLocation.ts
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   startLocationTracking,
@@ -7,147 +6,118 @@ import {
   fetchNearbyData,
   updateCurrentLocation,
   clearLocationError,
+  updateRegion,
 } from '@/store/slices/locationSlice';
 import { requestLocationPermission } from '@/utils/permissions';
-import { LocationPermission } from '@/types';
+import { LocationPermission } from '@/types/location';
+import Geolocation from 'react-native-geolocation-service';
+import { Region } from 'react-native-maps';
+import { locationService } from '@/services/locationService';
 
 /**
- * useLocation Hook - Location tracking and nearby users
- *
- * Provides:
- * - Start/stop location tracking
- * - Get current location
- * - Fetch nearby users
- * - Permission handling
+ * useLocation Hook - Real-time geolocation tracking and data fetching.
  */
 export const useLocation = () => {
   const dispatch = useAppDispatch();
   const locationState = useAppSelector((state) => state.location);
-  const [permissions, setPermissions] = useState<LocationPermission>('undetermined');
+  const [permission, setPermission] = useState<LocationPermission>('undetermined');
+  const watchIdRef = useRef<number | null>(null);
 
-  /**
-   * Start location tracking with permission check
-   */
+  const handlePermission = async () => {
+    const status = await requestLocationPermission();
+    setPermission(status);
+    return status;
+  };
+
   const startTracking = useCallback(async () => {
+    const perm = await handlePermission();
+    if (perm !== 'granted') {
+      return { success: false, error: 'Permission denied' };
+    }
+
     try {
-      // Request permission first
-      const permission = await requestLocationPermission();
-      setPermissions(permission);
+      // Get initial location to center map
+      const { latitude, longitude } = await locationService.getCurrentLocation();
 
-      if (permission !== 'granted') {
-        console.warn('Location permission denied');
-        return { success: false, error: 'Permission denied' };
-      }
+      const initialRegion: Region = { latitude, longitude, latitudeDelta: 0.0922, longitudeDelta: 0.0421 };
+      dispatch(updateRegion(initialRegion));
+      dispatch(updateCurrentLocation());
 
-      // Start tracking
-      const result = await dispatch(startLocationTracking()).unwrap();
-      return { success: true, data: result };
+      // Start watching for location changes
+      watchIdRef.current = Geolocation.watchPosition(
+        (position) => {
+          dispatch(updateCurrentLocation());
+          dispatch(fetchNearbyData({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            radius: 5000,
+          }));
+        },
+        (error) => console.error('[useLocation] Watch Error:', error),
+        { enableHighAccuracy: true, distanceFilter: 50 }
+      );
+
+      dispatch(startLocationTracking());
+      return { success: true };
     } catch (error: any) {
-      console.error('Failed to start location tracking:', error);
+      console.error('[useLocation] Start Tracking Error:', error);
       return { success: false, error: error.message };
     }
   }, [dispatch]);
 
-  /**
-   * Stop location tracking
-   */
   const stopTracking = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      Geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
     dispatch(stopLocationTracking());
   }, [dispatch]);
 
-  /**
-   * Get current location once
-   */
   const getCurrentLocation = useCallback(async () => {
     try {
       const result = await dispatch(updateCurrentLocation()).unwrap();
       return { success: true, data: result };
     } catch (error: any) {
-      console.error('Failed to get current location:', error);
       return { success: false, error: error.message };
     }
   }, [dispatch]);
 
-  /**
-   * Fetch nearby users within radius
-   */
-  const refreshNearbyUsers = useCallback(
-    async (params?: {
-      latitude?: number;
-      longitude?: number;
-      radius?: number;
-    }) => {
-      if (permissions !== 'granted') {
-        return { success: false, error: 'Permission not granted' };
-      }
-
-      try {
-        // Use provided coords or current location
-        const latitude = params?.latitude ?? locationState.latitude;
-        const longitude = params?.longitude ?? locationState.longitude;
-
-        if (!latitude || !longitude) {
-          throw new Error('Location not available');
-        }
-
-        const result = await dispatch(
-          fetchNearbyData({
-            latitude,
-            longitude,
-            radius: params?.radius || 1000,
-          })
-        ).unwrap();
-
-        return { success: true, data: result };
-      } catch (error: any) {
-        console.error('Failed to fetch nearby users:', error);
-        return { success: false, error: error.message };
-      }
-    },
-    [dispatch, permissions, locationState.latitude, locationState.longitude]
-  );
-
-  /**
-   * Clear location error
-   */
-  const clearError = useCallback(() => {
-    dispatch(clearLocationError());
-  }, [dispatch]);
-
-  /**
-   * Check if location is available
-   */
-  const hasLocation = !!(locationState.latitude && locationState.longitude);
-
-  /**
-   * Auto-refresh nearby users when location changes
-   */
-  useEffect(() => {
-    if (
-      locationState.tracking &&
-      locationState.latitude &&
-      locationState.longitude
-    ) {
-      // Debounce to avoid too many requests
-      const timer = setTimeout(() => {
-        refreshNearbyUsers();
-      }, 2000);
-
-      return () => clearTimeout(timer);
+  const refreshNearbyUsers = useCallback(async (params?: { latitude?: number; longitude?: number; radius?: number }) => {
+    if (permission !== 'granted') {
+      return { success: false, error: 'Permission not granted' };
     }
-  }, [locationState.latitude, locationState.longitude, locationState.tracking]);
+    try {
+      const { latitude, longitude } = locationState;
+      if (!latitude || !longitude) {
+        throw new Error('Location not available');
+      }
+      const result = await dispatch(fetchNearbyData({
+        latitude: params?.latitude ?? latitude,
+        longitude: params?.longitude ?? longitude,
+        radius: params?.radius || 5000,
+      })).unwrap();
+      return { success: true, data: result };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }, [dispatch, permission, locationState.latitude, locationState.longitude]);
+
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) {
+        Geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
 
   return {
-    // State
     ...locationState,
-    permissions,
-    hasLocation,
-
-    // Actions
+    permission,
+    hasLocation: !!(locationState.latitude && locationState.longitude),
     startTracking,
     stopTracking,
     getCurrentLocation,
     refreshNearbyUsers,
-    clearError,
+    clearError: useCallback(() => dispatch(clearLocationError()), [dispatch]),
   };
 };

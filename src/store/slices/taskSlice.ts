@@ -1,7 +1,6 @@
-// src/store/slices/taskSlice.ts
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, isAnyOf } from '@reduxjs/toolkit';
+import { tasksApi } from '@/api/tasksApi';
 import { Task, CreateTaskDto, UpdateTaskDto } from '@/types/task';
-import { taskService } from '@/services/taskService';
 
 interface TaskState {
   tasks: Task[];
@@ -17,102 +16,80 @@ const initialState: TaskState = {
   selectedTask: null,
 };
 
-// Thunks
-export const fetchTasks = createAsyncThunk(
-  'task/fetchTasks',
-  async (_, { rejectWithValue }) => {
-    try {
-      const data = await taskService.getTasks();
-      return data;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
-    }
-  },
-);
+export const fetchTasks = createAsyncThunk('task/fetchTasks', async (_, { rejectWithValue }) => {
+  try {
+    return await tasksApi.getTasks();
+  } catch (error: any) {
+    return rejectWithValue(error.message);
+  }
+});
 
-export const createTask = createAsyncThunk(
-  'task/createTask',
-  async (taskData: CreateTaskDto, { rejectWithValue }) => {
-    try {
-      const data = await taskService.createTask(taskData);
-      return data;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
-    }
-  },
-);
+export const createTask = createAsyncThunk('task/createTask', async (data: CreateTaskDto, { rejectWithValue }) => {
+  try {
+    return await tasksApi.createTask(data);
+  } catch (error: any) {
+    return rejectWithValue(error.message);
+  }
+});
 
-export const updateTask = createAsyncThunk(
-  'task/updateTask',
-  async ({ id, data }: { id: string; data: UpdateTaskDto }, { rejectWithValue }) => {
-    try {
-      const response = await taskService.updateTask(id, data);
-      return response;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
-    }
-  },
-);
+export const updateTask = createAsyncThunk('task/updateTask', async ({ id, data }: { id: string; data: Partial<UpdateTaskDto> }, { rejectWithValue }) => {
+  try {
+    return await tasksApi.updateTask(id, data);
+  } catch (error: any) {
+    return rejectWithValue(error.message);
+  }
+});
 
-export const deleteTask = createAsyncThunk(
-  'task/deleteTask',
-  async (id: string, { rejectWithValue }) => {
-    try {
-      await taskService.deleteTask(id);
-      return id;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
-    }
-  },
-);
+export const deleteTask = createAsyncThunk('task/deleteTask', async (id: string, { rejectWithValue }) => {
+  try {
+    await tasksApi.deleteTask(id);
+    return id;
+  } catch (error: any) {
+    return rejectWithValue(error.message);
+  }
+});
 
-// Slice
 const taskSlice = createSlice({
   name: 'task',
   initialState,
   reducers: {
-    selectTask: (state, action: PayloadAction<Task | null>) => {
+    selectTask: (state, action) => {
       state.selectedTask = action.payload;
     },
-    clearTaskError: state => {
+    clearTaskError: (state) => {
       state.error = null;
     },
-    clearTasks: state => {
-      state.tasks = [];
-    },
   },
-  extraReducers: builder => {
+  extraReducers: (builder) => {
     builder
-      // Fetch
-      .addCase(fetchTasks.pending, state => {
-        state.loading = true;
-        state.error = null;
-      })
       .addCase(fetchTasks.fulfilled, (state, action) => {
-        state.loading = false;
-        state.tasks = action.payload;
+        state.tasks = action.payload || [];
       })
-      .addCase(fetchTasks.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      // Create
       .addCase(createTask.fulfilled, (state, action) => {
-        state.tasks.push(action.payload);
+        state.tasks.unshift(action.payload);
       })
-      // Update
       .addCase(updateTask.fulfilled, (state, action) => {
-        const index = state.tasks.findIndex(t => t.id === action.payload.id);
+        const index = state.tasks.findIndex((t) => t.id === action.payload.id);
         if (index !== -1) {
           state.tasks[index] = action.payload;
         }
       })
-      // Delete
       .addCase(deleteTask.fulfilled, (state, action) => {
-        state.tasks = state.tasks.filter(t => t.id !== action.payload);
+        state.tasks = state.tasks.filter((t) => t.id !== action.payload);
+      })
+      .addMatcher(isAnyOf(fetchTasks.pending, createTask.pending, updateTask.pending, deleteTask.pending), (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addMatcher(isAnyOf(fetchTasks.rejected, createTask.rejected, updateTask.rejected, deleteTask.rejected), (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addMatcher(isAnyOf(fetchTasks.fulfilled, createTask.fulfilled, updateTask.fulfilled, deleteTask.fulfilled), (state) => {
+        state.loading = false;
       });
   },
 });
 
-export const { selectTask, clearTaskError, clearTasks } = taskSlice.actions;
+export const { selectTask, clearTaskError } = taskSlice.actions;
 export default taskSlice.reducer;
