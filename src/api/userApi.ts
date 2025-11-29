@@ -1,22 +1,22 @@
-import axiosInstance from './axiosInstance';
-import { User, UserPreferences, UserProfile } from '@/types/user';
+// src/api/userApi.ts
+import { User, UserPreferences } from '@/types/user';
 
-interface AvatarResponse {
-  avatarUrl: string;
-}
-
+// User profile operations
 export const userApi = {
-  getUserProfile: async (): Promise<User> => {
+  // Get current user profile
+  getUserProfile: async () => {
     const response = await axiosInstance.get<User>('/user/profile');
     return response.data;
   },
 
-  updateUserProfile: async (data: Partial<User>): Promise<User> => {
+  // Update user profile
+  updateUserProfile: async (data: Partial<User>) => {
     const response = await axiosInstance.put<User>('/user/profile', data);
     return response.data;
   },
 
-  uploadAvatar: async (imageUri: string): Promise<AvatarResponse> => {
+  // Upload profile image
+  uploadAvatar: async (imageUri: string) => {
     const formData = new FormData();
     formData.append('avatar', {
       uri: imageUri,
@@ -24,33 +24,59 @@ export const userApi = {
       name: 'avatar.jpg',
     } as any);
 
-    const response = await axiosInstance.post<AvatarResponse>(
+    const response = await axiosInstance.post<{ avatarUrl: string }>(
       '/user/avatar',
       formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
     );
     return response.data;
   },
 
-  deleteAccount: async (): Promise<void> => {
-    await axiosInstance.delete('/user/account');
-  },
-
-  getUserById: async (userId: string): Promise<UserProfile> => {
-    const response = await axiosInstance.get<UserProfile>(`/users/${userId}`);
+  // Delete user account
+  deleteAccount: async () => {
+    const response = await axiosInstance.delete('/user/account');
     return response.data;
   },
 
-  updatePreferences: async (preferences: Partial<UserPreferences>): Promise<UserPreferences> => {
-    const response = await axiosInstance.put<UserPreferences>('/user/preferences', preferences);
+  // Get user by ID
+  getUserById: async (userId: string) => {
+    const response = await axiosInstance.get<User>(`/users/${userId}`);
     return response.data;
   },
 
-  blockUser: async (userId: string): Promise<void> => {
-    await axiosInstance.post(`/users/${userId}/block`);
+  // Update preferences
+  updatePreferences: async (preferences: Partial<UserPreferences>) => {
+    const response = await axiosInstance.put('/user/preferences', preferences);
+    return response.data;
   },
 
-  reportUser: async (userId: string, reason: string): Promise<void> => {
-    await axiosInstance.post(`/users/${userId}/report`, { reason });
+  // Block user
+  blockUser: async (userId: string) => {
+    const response = await axiosInstance.post(`/users/${userId}/block`);
+    return response.data;
+  },
+
+  // Report user
+  reportUser: async (userId: string, reason: string) => {
+    const response = await axiosInstance.post(`/users/${userId}/report`, {
+      reason,
+    });
+    return response.data;
   },
 };
+
+// Export individual functions for convenience
+export const {
+  getUserProfile,
+  updateUserProfile,
+  uploadAvatar,
+  deleteAccount,
+  getUserById,
+  updatePreferences,
+  blockUser,
+  reportUser,
+} = userApi;

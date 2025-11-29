@@ -1,6 +1,7 @@
 import Geolocation from 'react-native-geolocation-service';
 import axiosInstance from '@/api/axiosInstance';
 
+
 export const locationService = {
   getCurrentLocation: () => {
     return new Promise<{ latitude: number; longitude: number; accuracy: number }>((resolve, reject) => {

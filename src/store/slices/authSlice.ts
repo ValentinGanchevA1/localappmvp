@@ -2,7 +2,6 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { ValidationUtils } from '@/utils/validation';
 import { User } from '@/types/user';
 import { SocketService } from '@/services/socketService';
-import axiosInstance from '@/api/axiosInstance';
 
 interface AuthState {
   token: string | null;
@@ -20,62 +19,79 @@ const initialState: AuthState = {
   user: null,
 };
 
-interface LoginCredentials {
-  phone: string;
-  password: string;
-}
-
-interface RegisterCredentials extends LoginCredentials {
-  name?: string;
-  email?: string;
-}
-
-interface AuthResponse {
-  access_token: string;
-  user: User;
-}
-
-export const loginWithPhone = createAsyncThunk<AuthResponse, LoginCredentials>(
+export const loginWithPhone = createAsyncThunk(
   'auth/loginWithPhone',
-  async (credentials, { rejectWithValue }) => {
+  async (
+    credentials: { phone: string; password: string },
+    { rejectWithValue }
+  ) => {
     try {
+      // Clean payload
       const payload = {
-        phone: String(credentials.phone).trim(),
-        password: String(credentials.password).trim(),
+        phone: String(credentials.phone || '').trim(),
+        password: String(credentials.password || '').trim(),
       };
 
+      if (__DEV__) {
+        console.log('[authSlice] Login payload:', payload);
+      }
+
+      // Validate
       if (!ValidationUtils.validateAuthPayload(payload)) {
         return rejectWithValue('Invalid phone or password');
       }
 
-      const response = await axiosInstance.post<AuthResponse>('/auth/login', payload);
+      // Send request
+      const response = await axiosInstance.post('/api/auth/login', payload);
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Login failed');
+      const message = error.response?.data?.message || error.message || 'Login failed';
+      return rejectWithValue(message);
     }
   }
 );
 
-export const registerWithPhone = createAsyncThunk<AuthResponse, RegisterCredentials>(
+export const registerWithPhone = createAsyncThunk(
   'auth/registerWithPhone',
-  async (credentials, { rejectWithValue }) => {
+  async (
+    credentials: {
+      phone: string;
+      password: string;
+      name?: string;
+      email?: string;
+    },
+    { rejectWithValue }
+  ) => {
     try {
+      // Build clean payload - only include fields if provided
       const payload: any = {
-        phone: String(credentials.phone).trim(),
-        password: String(credentials.password).trim(),
+        phone: String(credentials.phone || '').trim(),
+        password: String(credentials.password || '').trim(),
       };
 
-      if (credentials.name) payload.name = String(credentials.name).trim();
-      if (credentials.email) payload.email = String(credentials.email).trim();
+      if (credentials.name && String(credentials.name).trim()) {
+        payload.name = String(credentials.name).trim();
+      }
 
+      if (credentials.email && String(credentials.email).trim()) {
+        payload.email = String(credentials.email).trim();
+      }
+
+      if (__DEV__) {
+        console.log('[authSlice] Register payload:', payload);
+      }
+
+      // Validate
       if (!ValidationUtils.validateRegisterPayload(payload)) {
         return rejectWithValue('Invalid registration data');
       }
 
-      const response = await axiosInstance.post<AuthResponse>('/auth/register', payload);
+      // Send request
+      const response = await axiosInstance.post('/api/auth/register', payload);
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Registration failed');
+      const message = error.response?.data?.message || error.message || 'Registration failed';
+      return rejectWithValue(message);
     }
   }
 );
@@ -85,8 +101,13 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     logout: (state) => {
+      // Disconnect socket before clearing auth
       SocketService.getInstance().disconnect();
-      return initialState;
+
+      state.token = null;
+      state.isAuthenticated = false;
+      state.user = null;
+      state.error = null;
     },
     clearError: (state) => {
       state.error = null;
@@ -94,6 +115,7 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Login
       .addCase(loginWithPhone.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -108,6 +130,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+      // Register
       .addCase(registerWithPhone.pending, (state) => {
         state.loading = true;
         state.error = null;
