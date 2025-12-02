@@ -2,11 +2,13 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
-import MapScreen from '@/screens/main/MapScreen';
-import ProfileScreen from '@/screens/main/ProfileScreen';
-import { NotificationsScreen } from '@/screens/main/NotificationsScreen';
-import { TaskListScreen } from '@/screens/main/TaskListScreen';
-import { TaskFormScreen } from '@/screens/main/TaskFormScreen';
+import {
+  MapScreen,
+  ProfileScreen,
+  NotificationsScreen,
+  TaskListScreen,
+  TaskFormScreen,
+} from '@/screens/main';
 import { COLORS, TYPOGRAPHY } from '@/config/theme';
 
 export type MainTabParamList = {

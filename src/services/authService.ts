@@ -1,4 +1,4 @@
-import { apiClient } from './api';
+import axiosInstance from '@/api/axiosInstance';
 import { LoginCredentials } from '@/types';
 import { User } from '@/types/user';
 
@@ -15,51 +15,52 @@ export interface AuthResponse {
 
 export const authService = {
   async loginWithPhone(credentials: LoginCredentials): Promise<{ token: string; user: User }> {
-    const response = await apiClient.post<AuthResponse>('/auth/phone', credentials);
+    const data = await axiosInstance.post<AuthResponse>('/auth/phone', credentials);
+    const response = (data as any).data || data;
     return {
-      token: response.data.access_token,
+      token: response.access_token,
       user: {
-        id: response.data.user.id,
-        name: response.data.user.name || '',
-        email: response.data.user.email || '',
-        avatar: response.data.user.avatar || '',
+        id: response.user.id,
+        name: response.user.name || '',
+        email: response.user.email || '',
+        avatar: response.user.avatar || '',
       },
     };
   },
 
   async registerWithPhone(credentials: LoginCredentials): Promise<{ token: string; user: User }> {
-    const response = await apiClient.post<AuthResponse>('/auth/register', credentials);
+    const data = await axiosInstance.post<AuthResponse>('/auth/register', credentials);
+    const response = (data as any).data || data;
     return {
-      token: response.data.access_token,
+      token: response.access_token,
       user: {
-        id: response.data.user.id,
-        name: response.data.user.name || '',
-        email: response.data.user.email || '',
-        avatar: response.data.user.avatar || '',
+        id: response.user.id,
+        name: response.user.name || '',
+        email: response.user.email || '',
+        avatar: response.user.avatar || '',
       },
     };
   },
 
   async loginWithPassword(credentials: LoginCredentials): Promise<{ token: string; user: User }> {
-    const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
+    const data = await axiosInstance.post<AuthResponse>('/auth/login', credentials);
+    const response = (data as any).data || data;
     return {
-      token: response.data.access_token,
+      token: response.access_token,
       user: {
-        id: response.data.user.id,
-        name: response.data.user.name || '',
-        email: response.data.user.email || '',
-        avatar: response.data.user.avatar || '',
+        id: response.user.id,
+        name: response.user.name || '',
+        email: response.user.email || '',
+        avatar: response.user.avatar || '',
       },
     };
   },
 
   async verifyCode(code: string): Promise<{ verified: boolean }> {
-    const response = await apiClient.post('/auth/verify', { code });
-    return response.data;
+    return await axiosInstance.post('/auth/verify', { code });
   },
 
   async refreshToken(token: string): Promise<{ token: string }> {
-    const response = await apiClient.post('/auth/refresh', { token });
-    return response.data;
+    return await axiosInstance.post('/auth/refresh', { token });
   },
 };
